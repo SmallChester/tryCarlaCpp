@@ -1,0 +1,42 @@
+{
+    "configurations": [
+        {
+            "name": "linux-gcc-x64",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/home/typhon/repos/carla/LibCarla/source/carla/**",
+                "/home/typhon/repos/carla/LibCarla/source/**",
+                "/home/typhon/repos/carla/Build/rpclib-v2.2.1_c5-c10-libstdcxx-install/**",
+                "/home/typhon/repos/carla/Build/rpclib-v2.2.1_c5-c10-libstdcxx-install/**",
+                "/home/typhon/repos/carla/Build/gtest-1.8.1-c10-libstdcxx-install/**",
+                "/home/typhon/repos/carla/Build/gtest-1.8.1-c10-libstdcxx-install/**",
+                "/home/typhon/repos/carla/Build/boost-1.80.0-c10-install/**",
+                "/home/typhon/repos/carla/Build/recast-0b13b0-c10-install/**",
+                "/home/typhon/repos/carla/Build/recast-0b13b0-c10-install/**",
+                "/home/typhon/repos/carla/Build/libpng-1.6.37-install/include/**",
+                "/home/typhon/repos/carla/Build/libpng-1.6.37-install/**",
+                "/home/typhon/repos/carla/LibCarla/source/carla/client/**"
+            ],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "${default}",
+            "cppStandard": "${default}",
+            "intelliSenseMode": "linux-gcc-x64",
+            "compilerArgs": [
+                "-fdiagnostics-color=always",
+                "-g",
+                "trycplus.cpp",
+                "-o",
+                "/home/typhon/repos/tryCarlac/build/Debug/outDebug",
+                "-I",
+                "${workspaceFolder}/",
+                "-I",
+				"/home/typhon/repos/carla/LibCarla/source/**",
+                "-I",
+                "/home/typhon/repos/carla/LibCarla/source/carla/client/**",
+                "-I",
+				"/home/typhon/repos/carla/LibCarla/source/carla/**"
+            ]
+        }
+    ],
+    "version": 4
+}
