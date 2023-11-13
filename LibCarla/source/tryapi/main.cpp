@@ -5,6 +5,9 @@
 #include <string>
 #include <thread>
 #include <tuple>
+#include <string>
+#include <fstream>
+#include <streambuf>
 
 #include <carla/client/ActorBlueprint.h>
 #include <carla/client/BlueprintLibrary.h>
@@ -17,10 +20,13 @@
 #include <carla/image/ImageIO.h>
 #include <carla/image/ImageView.h>
 #include <carla/sensor/data/Image.h>
+#include <carla/trafficManager/TrafficManager.h>
 
 namespace cc = carla::client;
 namespace cg = carla::geom;
 namespace csd = carla::sensor::data;
+namespace cr = carla::rpc;
+namespace ctm = carla::traffic_manager;
 
 using namespace std::chrono_literals;
 using namespace std::string_literals;
@@ -73,16 +79,55 @@ int main(int argc, const char *argv[]) {
 
     std::cout << "Client API version : " << client.GetClientVersion() << '\n';
     std::cout << "Server API version : " << client.GetServerVersion() << '\n';
-
+    
+    /*
     // Load a random town.
     auto town_name = RandomChoice(client.GetAvailableMaps(), rng);
     std::cout << "Loading world: " << town_name << std::endl;
     auto world = client.LoadWorld(town_name);
+    */
+
+    // 读取文件
+    //string opfile=string("TownBig.xodr");
+
+    std::ifstream odrStream("TownBig.xodr");
+    std::string odrData((std::istreambuf_iterator<char>(odrStream)),
+                    std::istreambuf_iterator<char>());
+    // 设定参数
+    double vertex_distance = 2.0;//  # in meters
+    double max_road_length = 500.0;// # in meters
+    double wall_height = 1.0      ;//# in meters
+    double extra_width = 0.6      ;//# in meters
+            // bool smooth_junc;
+            // bool e_visibility;
+            // bool e_pedestrian;
+    auto odrParameters=cr::OpendriveGenerationParameters(vertex_distance,max_road_length,wall_height,extra_width,true,true,false);
+    auto world = client.GenerateOpenDriveWorld(odrData,odrParameters);
+            //auto world=client.LoadWorld(opfile);
+
+    // 设置traffic manager
+    auto traffic_mannger=client.GetInstanceTM();
+    traffic_manager.SetGlobalDistanceToLeadingVehicle(3.0);
+    traffic_manager.SetHybridPhysicsMode(true);
+    traffic_manager.SetGlobalPercentageSpeedDifference(80);
+    
+    bool argsSync=true;
+    bool synchronous_master=false;
+    // Suggest using syncmode
+    //true
+    auto settings=world.GetSettings();
+    traffic_manager.SetSynchronousMode(true);
+    if(settings.synchronous_mode==false){
+        synchronous_master=true;
+        settings.synchronous_mode=true;
+        settings.fixed_delta_seconds=boost::optional<double>(10)
+    }
 
     // Get a random vehicle blueprint.
     auto blueprint_library = world.GetBlueprintLibrary();
-    auto vehicles = blueprint_library->Filter("vehicle");
+    auto vehicles = blueprint_library->Filter("vehicle.audi.a2");
     auto blueprint = RandomChoice(*vehicles, rng);
+            //auto blueprint=world.GetBlueprintLibrary()->Filter("vehicle.audi.a2");
 
     // Randomize the blueprint.
     if (blueprint.ContainsAttribute("color")) {
@@ -149,37 +194,3 @@ int main(int argc, const char *argv[]) {
     return 2;
   }
 }
-
-// #include <iostream>
-// #include <carla/MsgPackAdaptors.h>
-// #include <carla/ThreadGroup.h>
-// #include <carla/client/Client.h>
-// #include <carla/client/World.h>
-// #include <carla/Time.h>
-// #include <thread>
-// #include <carla/Buffer.h>
-// #include <carla/rpc/DebugShape.h>
-// #include "carla/rpc/Response.h"
-// #include "carla/rpc/VehicleAckermannControl.h"
-// #include "carla/rpc/VehicleControl.h"
-// #include "carla/rpc/VehicleLightState.h"
-// #include "carla/rpc/WalkerBoneControlIn.h"
-// #include "carla/rpc/WalkerBoneControlOut.h"
-// #include "carla/rpc/WalkerControl.h"
-// #include "carla/Logging.h"
-// #include "carla/rpc/ActorId.h"
-// #include "carla/trafficmanager/TrafficManager.h"
-// #include <algorithm>
-// #include <memory>
-// #include <ostream>
-// #include <string>
-
-
-// int main(){
-//   auto client=carla::client::Client(std::string("127.0.0.1"),2000);
-//   client.SetTimeout(carla::time_duration::seconds(10));
-//   auto world= client.GetWorld();
-
-
-//   return 0;
-// }
