@@ -12,7 +12,6 @@
       "program": "/home/typhon/repos/tryCarlac/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
-      "preLaunchTask": "C/C++: g++ build active file",
       "setupCommands": [
         {
           "description": "Enable pretty-printing for gdb",
@@ -20,6 +19,50 @@
           "ignoreFailures": true
         }
       ]
-    }
+    },
+    {
+      "name": "debug",
+      "type": "lldb",
+      "request": "launch",
+       // 指定可以执行文件路径，必须和 task.json 中 -o 参数一致
+      "program": "${workspaceFolder}/build/${fileBasenameNoExtension}",
+      // 前置任务，必须和 task.json 中的 label 一致
+      "preLaunchTask": "clang++_debug",
+
+      // 以下内容不是必须，仅备忘
+      // "cwd": "${workspaceFolder}",
+      // "internalConsoleOptions": "neverOpen",
+      // "console": "integratedTerminal"
+    },
+    {
+      "name": "debug lldb",
+      "type": "lldb",
+      "request": "launch",
+      "cwd": "${workspaceFolder}", // 指定可以执行文件路径，必须和 task.json 中 -o 参数一致
+      "program": "${workspaceFolder}/build/LibCarla/cmake/tryapi/tryapi_test_client_debug",
+      // 前置任务，必须和 task.json 中的 label 一致
+      "preLaunchTask": "Build CMake files",
+    },
+    {
+      "name": "debug using gdb",
+      "request": "launch",
+      "cwd": "${workspaceFolder}", // 指定可以执行文件路径，必须和 task.json 中 -o 参数一致
+      "program": "${workspaceFolder}/build/LibCarla/cmake/tryapi/tryapi_test_client_debug",
+      // 前置任务，必须和 task.json 中的 label 一致
+      "preLaunchTask": "Build CMake files",
+      "type": "cppdbg",
+      "args": [],
+      "stopAtEntry": false,
+      "externalConsole": true,
+      "MIMode": "gdb",
+      "miDebuggerPath": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        }
+      ]
+    },
   ]
 }
