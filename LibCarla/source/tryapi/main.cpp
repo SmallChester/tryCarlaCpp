@@ -20,7 +20,7 @@
 #include <carla/image/ImageIO.h>
 #include <carla/image/ImageView.h>
 #include <carla/sensor/data/Image.h>
-#include <carla/trafficManager/TrafficManager.h>
+#include <carla/trafficmanager/TrafficManager.h>
 
 namespace cc = carla::client;
 namespace cg = carla::geom;
@@ -42,7 +42,7 @@ static auto &RandomChoice(const RangeT &range, RNG &&generator) {
 }
 
 /// Save a semantic segmentation image to disk converting to CityScapes palette.
-/*
+/**/
 static void SaveSemSegImageToDisk(const csd::Image &image) {
   using namespace carla::image;
 
@@ -55,7 +55,7 @@ static void SaveSemSegImageToDisk(const csd::Image &image) {
       ColorConverter::CityScapesPalette());
   ImageIO::WriteView(filename, view);
 }
-*/
+
 
 static auto ParseArguments(int argc, const char *argv[]) {
   EXPECT_TRUE((argc == 1u) || (argc == 3u));
@@ -106,7 +106,7 @@ int main(int argc, const char *argv[]) {
             //auto world=client.LoadWorld(opfile);
 
     // 设置traffic manager
-    auto traffic_mannger=client.GetInstanceTM();
+    auto traffic_manager=client.GetInstanceTM();
     traffic_manager.SetGlobalDistanceToLeadingVehicle(3.0);
     traffic_manager.SetHybridPhysicsMode(true);
     traffic_manager.SetGlobalPercentageSpeedDifference(80);
@@ -120,7 +120,8 @@ int main(int argc, const char *argv[]) {
     if(settings.synchronous_mode==false){
         synchronous_master=true;
         settings.synchronous_mode=true;
-        settings.fixed_delta_seconds=boost::optional<double>(10)
+        settings.fixed_delta_seconds=boost::optional<double>(0.05);
+        world.ApplySettings(settings,carla::time_duration::seconds(1));
     }
 
     // Get a random vehicle blueprint.
@@ -149,15 +150,32 @@ int main(int argc, const char *argv[]) {
     // Apply control to vehicle.
     cc::Vehicle::Control control;
     control.throttle = 1.0f;
-    vehicle->ApplyControl(control);
-
+            //vehicle->ApplyControl(control);
+    vehicle->SetAutopilot();
+    
     // Move spectator so we can see the vehicle from the simulator window.
-    auto spectator = world.GetSpectator();
-    transform.location += 32.0f * transform.GetForwardVector();
-    transform.location.z += 2.0f;
-    transform.rotation.yaw += 180.0f;
-    transform.rotation.pitch = -15.0f;
-    spectator->SetTransform(transform);
+    // auto spectator = world.GetSpectator();
+    // transform.location += 32.0f * transform.GetForwardVector();
+    // transform.location.z += 2.0f;
+    // transform.rotation.yaw += 180.0f;
+    // transform.rotation.pitch = -15.0f;
+    // spectator->SetTransform(transform);
+
+    auto camera_bp=blueprint_library->Find("sensor.camera.rgb");
+    EXPECT_TRUE(camera_bp != nullptr);
+    auto camera_transform = cg::Transform{
+        cg::Location{-8.0f, 5.0f, 0.0f},   // x, y, z.
+        cg::Rotation{10.0f, 0.0f, 0.0f}}; // pitch, yaw, roll.
+    auto cam_actor = world.SpawnActor(*camera_bp, camera_transform, actor.get());
+    auto camera = boost::static_pointer_cast<cc::Sensor>(cam_actor);
+
+    // Register a callback to save images to disk.
+    camera->Listen([](auto data) {
+        auto image = boost::static_pointer_cast<csd::Image>(data);
+        EXPECT_TRUE(image != nullptr);
+                    //SaveSemSegImageToDisk(*image);
+    });
+    std::this_thread::sleep_for(100s);
 
 /*
     // Find a camera blueprint.
@@ -185,6 +203,7 @@ int main(int argc, const char *argv[]) {
 */
     vehicle->Destroy();
     std::cout << "Actors destroyed." << std::endl;
+    camera->Destroy();
 
   } catch (const cc::TimeoutException &e) {
     std::cout << '\n' << e.what() << std::endl;
