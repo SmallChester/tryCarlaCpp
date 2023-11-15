@@ -24,6 +24,31 @@
         "-I",
         "/home/typhon/repos/carla/LibCarla/source/carla/**"
       ]
+    },{
+      "name": "clang",
+      "includePath": [
+        "${workspaceFolder}/**",
+        "/home/typhon/repos/tryCarlac/libcarla-install/include/**"
+      ],
+      "compilerPath": "/usr/bin/clang",
+      "cStandard": "${default}",
+      "cppStandard": "${default}",
+      "intelliSenseMode": "clang-x64",
+      "compilerArgs": [
+        "-fdiagnostics-color=always",
+        "-g",
+        "trycplus.cpp",
+        "-o",
+        "/home/typhon/repos/tryCarlac/build/Debug/outDebug",
+        "-I",
+        "${workspaceFolder}/**",
+        "-I",
+        "/home/typhon/repos/carla/LibCarla/source/**",
+        "-I",
+        "/home/typhon/repos/carla/LibCarla/source/carla/client/**",
+        "-I",
+        "/home/typhon/repos/carla/LibCarla/source/carla/**"
+      ]
     }
   ],
   "version": 4

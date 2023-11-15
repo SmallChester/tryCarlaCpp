@@ -1,14 +1,9 @@
-#include "boost/exception/exception.hpp"
-#include "carla/client/Actor.h"
-#include "carla/client/Vehicle.h"
-#include "carla/geom/Location.h"
-#include "carla/geom/Rotation.h"
-#include "carla/rpc/AttachmentType.h"
-#include "carla/rpc/Location.h"
-#include "carla/rpc/Transform.h"
+#include <cstddef>
+#include <ctime>
 #include <iostream>
 #include <iterator>
 #include <memory>
+#include <ostream>
 #include <random>
 #include <sstream>
 #include <stdexcept>
@@ -18,6 +13,8 @@
 #include <string>
 #include <fstream>
 #include <streambuf>
+#include <vector>
+#include <time.h>
 
 #include <carla/client/ActorBlueprint.h>
 #include <carla/client/BlueprintLibrary.h>
@@ -31,7 +28,16 @@
 #include <carla/image/ImageView.h>
 #include <carla/sensor/data/Image.h>
 #include <carla/trafficmanager/TrafficManager.h>
-#include <vector>
+#include <boost/exception/exception.hpp>
+#include <carla/client/Actor.h>
+#include <carla/client/Vehicle.h>
+#include <carla/geom/Location.h>
+#include <carla/geom/Rotation.h>
+#include <carla/rpc/AttachmentType.h>
+#include <carla/rpc/Location.h>
+#include <carla/rpc/Transform.h>
+#include <carla/client/World.h>
+#include <carla/Time.h>
 
 namespace cc = carla::client;
 namespace cg = carla::geom;
@@ -140,7 +146,7 @@ void updateSpectator(boost::shared_ptr<carla::client::Vehicle> vehicle,std::shar
 
 
 
-void autopilot(std::shared_ptr<carla::client::Vehicle> vehicle){
+void autopilot(boost::shared_ptr<carla::client::Vehicle> vehicle){
   vehicle->SetAutopilot();
 }
 
@@ -167,7 +173,8 @@ int main(int argc, const char *argv[]) {
             */
     // =================== 设置地图,获取世界world=========================================
     // 读取文件
-    std::ifstream odrStream("TownBig.xodr");
+    std::string odrName=std::string("Test-Output6.xodr");
+    std::ifstream odrStream(odrName);
     std::string odrData((std::istreambuf_iterator<char>(odrStream)),
                     std::istreambuf_iterator<char>());
     // 设定参数
@@ -208,7 +215,73 @@ int main(int argc, const char *argv[]) {
 
     std::shared_ptr<std::vector<boost::shared_ptr<carla::client::Actor>>> spectator_obj_list=std::make_shared<std::vector<boost::shared_ptr<carla::client::Actor>>>();
 
-    
+    autopilot(vehicle);
+
+    //===================== 设置traffic manager==============================================
+    bool argsSync=true;
+    bool synchronous_master=false;
+    // Suggest using syncmode
+    //true
+    // 设置traffic manager
+    auto traffic_manager=client.GetInstanceTM();
+    traffic_manager.SetGlobalDistanceToLeadingVehicle(3.0);
+    traffic_manager.SetHybridPhysicsMode(true);
+    traffic_manager.SetGlobalPercentageSpeedDifference(80);
+    auto settings=world.GetSettings();
+    traffic_manager.SetSynchronousMode(true);
+    if(settings.synchronous_mode==false){
+        synchronous_master=true;
+        settings.synchronous_mode=true;
+        settings.fixed_delta_seconds=boost::optional<double>(0.05);
+        world.ApplySettings(settings,carla::time_duration::seconds(1));
+    }
+
+
+
+    //======================= log 文件=============================================
+
+    std::fstream logfp;
+    time_t timep;
+    std::time(&timep);
+    char temptime[256];
+    std::strftime(temptime,sizeof(temptime),"%Y-%m-%d %H-%M-%S", localtime(&timep));
+    std::string stemptime=temptime;
+    logfp.open("log/"+stemptime+".log",std::ios::out);
+
+
+    std::cout<<"Vehicle id : "<<vehicle->GetId()<<std::endl;
+    //===========================world.tick()====================================
+    while(1){
+      if(argsSync&&synchronous_master){
+        world.Tick(carla::time_duration::seconds(0));
+        auto spectator=world.GetSpectator();
+        auto transform=vehicle->GetTransform();
+        transform.location.z+=50;
+        transform.rotation.pitch+=-90;
+
+        auto waypoint = world.GetMap()->GetWaypoint(vehicle->GetLocation());//,project_to_road=True, lane_type=(carla.LaneType.Driving | carla.LaneType.Shoulder | carla.LaneType.Sidewalk))
+        //logfp<<"\nCurrent lane type: "<<std::to_string(waypoint->GetRoadId()->GetType());
+        logfp<<"Current id, road_id, lane_id: "<<std::to_string(waypoint->GetRoadId())<<" "<<std::to_string(waypoint->GetLaneId())<<std::endl;
+        logfp<<"      next action: "<<" ";
+        auto tt=traffic_manager.GetNextAction(vehicle->GetId());
+        
+            switch (static_cast<uint8_t>(tt.first))
+            {
+            case 0: logfp<<"Void"<<" "; break;
+            case 1: logfp<<"Left"<<" "; break;
+            case 2: logfp<<"Right"<<" "; break;
+            case 3: logfp<<"Straight"<<" "; break;
+            case 4: logfp<<"LaneFollow"<<" "; break;
+            case 5: logfp<<"ChangeLaneLeft"<<" "; break;
+            case 6: logfp<<"ChangeLaneRight"<<" "; break;
+            case 7: logfp<<"RoadEnd"<<" "; break;
+            default:logfp<<("error\n");
+            }           
+        logfp<<"    road_id, lane_id: "<<std::to_string(tt.second->GetRoadId())<<" "<<std::to_string(tt.second->GetLaneId())<<std::endl;
+        //cg::Location(0.0f, 0.0f, 50.0f)
+        spectator->SetTransform(carla::geom::Transform(transform));
+      }
+    }
 
   /*
     // 设置traffic manager
